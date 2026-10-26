@@ -1,0 +1,219 @@
+{
+  "$schema": "../../schemas/pattern-passport.schema.json",
+  "identity": {
+    "pattern_id": "P-01",
+    "name": "Planar Line Reflection",
+    "description": "Rigid isometric reflection of 2D points and polygon planar facets across an arbitrary affine straight line defined by an anchor point and direction vector in Euclidean Float64 plane.",
+    "schema_version": "1.0.0",
+    "pattern_version": "1.0.0",
+    "lifecycle_status": "EXPERIMENT_VERIFIED"
+  },
+  "definition": {
+    "rule": "Given unit direction u = (ux, uy)^T and anchor a in R^2, Householder reflection matrix R = 2*(u * u^T) - I = [[2*ux^2 - 1, 2*ux*uy], [2*ux*uy, 2*uy^2 - 1]]. Transformed point: p' = a + R * (p - a). Transformed polygon: P' = [p'_1, ..., p'_n] where p'_i = reflectPoint(p_i, a, u).",
+    "purpose": "To compute deterministic rigid planar reflection of geometric entities (points and polygon facets) across a 1D crease line in 2D Euclidean space within calibrated numerical tolerances.",
+    "category": "Geometric Transformation",
+    "domain": "2D Planar Euclidean Geometry",
+    "scope": "Rigid planar isometric reflection of points, segments, and simple convex or non-self-intersecting polygons in Float64 Cartesian coordinates."
+  },
+  "applicability": {
+    "preconditions": [
+      "Line direction vector u must be non-zero (ux^2 + uy^2 > 0) and finite (not NaN, not Infinity).",
+      "Line anchor point a must have finite coordinates [ax, ay].",
+      "Target point p must have finite coordinates [px, py].",
+      "Target polygon vertices must form a non-empty array of valid finite 2D points with length >= 3.",
+      "All input coordinates must lie within the calibrated domain bound L in [0, 2] to guarantee numerical discrepancy eps_coord <= 1.0e-7."
+    ],
+    "required_properties": [
+      "2D Cartesian coordinate representation using IEEE 754 Float64.",
+      "Euclidean metric d(p1, p2) = sqrt((x1-x2)^2 + (y1-y2)^2).",
+      "Rigid non-deformable planar facets (zero strain, zero elasticity)."
+    ],
+    "supported_inputs": [
+      "Single Point2D tuple: [number, number].",
+      "Array of polygon vertices: Point2D[] (triangle, rectangle, convex polygon).",
+      "Line2D defined by anchor Point2D and non-zero direction Point2D.",
+      "Axis-aligned lines (x = a, y = b) and arbitrary oblique lines (e.g., u = [1, 1])."
+    ],
+    "unsupported_inputs": [
+      "Zero-length direction vector [0, 0] or near-zero vector with norm < 1e-15.",
+      "Coordinates containing NaN, +Infinity, or -Infinity.",
+      "Empty vertex array or non-array inputs for reflectPolygon.",
+      "3D non-coplanar coordinates (z != 0) or non-zero paper thickness.",
+      "Self-intersecting non-simple polygons requiring topological mesh decomposition."
+    ],
+    "degeneracies": [
+      "Degenerate direction vector u = [0, 0]: Rejected at runtime with ZERO_DIRECTION_VECTOR error.",
+      "Point lying on reflection line: Mapped to itself with displacement <= 1.0e-9.",
+      "Collinear line anchor and direction: Any point on line can serve as anchor; results are invariant under translation along u.",
+      "Degenerate zero-area polygon (collinear vertices): Vertices are mapped isometrically, but normal orientation is singular."
+    ]
+  },
+  "inputs_and_outputs": {
+    "inputs": [
+      {
+        "name": "p",
+        "type": "Point2D",
+        "description": "2D point tuple [x, y] to be transformed"
+      },
+      {
+        "name": "vertices",
+        "type": "Point2D[]",
+        "description": "Ordered sequence of 2D vertex tuples defining the planar polygon facet"
+      },
+      {
+        "name": "lineAnchor",
+        "type": "Point2D",
+        "description": "Anchor point 'a' lying on the reflection axis"
+      },
+      {
+        "name": "lineDir",
+        "type": "Point2D",
+        "description": "Direction vector 'u' specifying the orientation of the reflection axis"
+      }
+    ],
+    "coordinate_system": "Cartesian 2D Float64 (IEEE 754)",
+    "output_descriptor": {
+      "type": "Point2D | Point2D[]",
+      "description": "Reflected point tuple p' or array of reflected vertex tuples preserving vertex order",
+      "matrix": "Matrix2x2 R = 2*u*u^T - I",
+      "translation": "Point2D t = a - R*a"
+    },
+    "error_conditions": [
+      "INVALID_COORDINATE: Thrown when coordinate array length != 2 or contains NaN / Infinity",
+      "ZERO_DIRECTION_VECTOR: Thrown when direction vector norm squared is zero or non-finite",
+      "INVALID_POLYGON: Thrown when polygon vertices array is empty or not an array",
+      "INVALID_SCALAR: Thrown when scale multiplier is NaN or non-finite"
+    ]
+  },
+  "execution_semantics": {
+    "operation_description": "Normalizes direction vector u_norm = u / ||u||, constructs 2x2 Householder reflection matrix R = [[2*ux^2 - 1, 2*ux*uy], [2*ux*uy, 2*uy^2 - 1]], computes relative vector diff = p - a, rotates diff via mulMatrixVec2D(R, diff), and translates by anchor: p' = add2D(a, rotated). For polygons, maps all vertices sequentially preserving index order.",
+    "dependency_references": [
+      "src/core/reflection.ts:reflectPoint",
+      "src/core/reflection.ts:reflectPolygon",
+      "src/core/reflection.ts:computeReflectionMatrix",
+      "src/verifier/independentVerifier.ts:auditFoldStep"
+    ],
+    "state_transition_semantics": "Pure functional state mapping: S_{k+1} = reflectPolygon(S_k, lineAnchor, lineDir). Immutability is preserved; input arrays are never modified in-place.",
+    "proposal_vs_execution": "AGENT PROPOSES: fold line parameters (anchor and direction) and target facet -> CORE COMPUTES: Float64 deterministic reflection -> INDEPENDENT VERIFIER CHECKS: metric isometry, axis immobility, area preservation, and orientation reversal."
+  },
+  "verification_contract": {
+    "postconditions": [
+      "Pairwise Euclidean distance isometry: for all i, j in vertices, | ||p'_i - p'_j|| - ||p_i - p_j|| | <= 1.0e-7",
+      "Axis point immobility: for all points p on line, ||reflectPoint(p, a, u) - p|| <= 1.0e-9",
+      "Unsigned area preservation: |Area_unsigned(P') - Area_unsigned(P)| <= 1.0e-9",
+      "Orientation inversion: Area_signed(P') + Area_signed(P) == 0 within tolerance 1.0e-9",
+      "Involution property: reflectPoint(reflectPoint(p, a, u), a, u) == p within tolerance 1.0e-7",
+      "Reflection matrix determinant: det(R) == -1.0 within tolerance 1.0e-14"
+    ],
+    "analytic_oracle": "Independent analytic calculations in Float64: R = 2*u*u^T - I, det(R) = -1. Zero-trust verifier implements autonomous Euclidean distance and autonomous Gauss Shoelace area formulas isolated from kernel code.",
+    "tolerance_policy": {
+      "coord": 1.0e-7,
+      "area": 1.0e-9,
+      "axis": 1.0e-9,
+      "angle": 1.0e-6,
+      "calibrated_domain_max_L": 2.0
+    },
+    "positive_tests": [
+      "EXP-001 Test 01: reflectPoint basic translation & reflection",
+      "EXP-001 Test 02: reflectPolygon square across vertical axis x=1",
+      "EXP-001 Test 03: Axis immobility verification",
+      "EXP-001 Test 04: Isometry preservation (pairwise vertex distance)",
+      "EXP-001 Test 05: Area preservation (Gauss Shoelace unsigned area)",
+      "EXP-001 Test 06: Orientation reversal (signed area negation)",
+      "EXP-001 Test 07: Involution check R(R(p)) = p",
+      "EXP-001 Test 08: Reflection across horizontal line y=1",
+      "AUDIT-EXT Test 01: Reflection across oblique line (anchor [0,0], dir [1,1])",
+      "SEQ-001: Two-step dependent reflection sequence across x=1 then x=0",
+      "SEQ-002: Three-step dependent reflection sequence"
+    ],
+    "negative_controls": [
+      "EXP-001 Test Negative 01: assertValidDirection2D rejects zero vector [0, 0] with ZERO_DIRECTION_VECTOR",
+      "EXP-001 Test Negative 02: assertValidPoint2D rejects NaN coordinate [NaN, 1.0] with INVALID_COORDINATE",
+      "EXP-001 Test Negative 03: assertValidPoint2D rejects Infinity coordinate [Infinity, 0] with INVALID_COORDINATE",
+      "NC-001: Dataflow disruption negative control detects mismatched input state (discrepancy delta = 2.0)"
+    ],
+    "invariant_checks": [
+      "verifyIsometry: Checks all vertex pairwise distances with tolerance 1.0e-7",
+      "verifyAxisImmobility: Checks points on line axis remain fixed with tolerance 1.0e-9",
+      "verifyAreaInvariants: Checks unsigned area delta <= 1.0e-9 and signed sum delta <= 1.0e-9",
+      "auditFoldStep: Integrated zero-trust audit of single reflection step"
+    ]
+  },
+  "evidence_and_provenance": {
+    "evidence_identifiers": [
+      "EXP-001",
+      "EXP-002",
+      "AUDIT-EXT-GATE-1.1",
+      "SEQ-001",
+      "SEQ-002",
+      "NC-001"
+    ],
+    "reproduction_commands": [
+      "npm test",
+      "npm run test:seq001",
+      "npm run test:seq002",
+      "npm run test:nc001",
+      "npm run test:schema"
+    ],
+    "evidence_status": "CONFIRMED_BY_TEST",
+    "known_gaps": [
+      "GAP-01: Universal tolerance scaling for coordinate magnitudes L > 2.0 is not yet mathematically calibrated.",
+      "GAP-02: General concave or self-intersecting polygon clipping is outside Sutherland-Hodgman verifier capability."
+    ]
+  },
+  "limitations": {
+    "scope_boundaries": [
+      "Purely 2D planar Euclidean space (x, y in R^2); no elevation or z-coordinate.",
+      "Rigid kinematics only; zero-thickness idealization (t = 0).",
+      "Calibrated for coordinate domain L in [0, 2]; numerical tolerances do not automatically scale to arbitrarily large domains."
+    ],
+    "unresolved_assumptions": [
+      "Zero paper thickness: layers occupy identical geometric plane during overlap without physical volume exclusion.",
+      "Ideal rigid sheet: excludes bending stiffness, plastic deformation, or crease thickness accumulation."
+    ],
+    "unsupported_claims": [
+      "2D reflection does NOT prove 3D physical foldability of paper or crease patterns.",
+      "2D reflection does NOT model continuous hinge kinematics, dihedral angles, or folding trajectories.",
+      "2D reflection does NOT perform 3D collision detection between non-adjacent folding facets.",
+      "2D reflection does NOT compute physical layer elevation or stacking order (facet stacking topology).",
+      "MVP scope does NOT include Kawasaki-Justin theorem (alternating sector angle sum = 180 deg) or Maekawa-Justin theorem (M - V = +/- 2).",
+      "MVP scope does NOT implement Hodge decomposition, cell complex boundary operators (B1, B2), or discrete Laplace-Beltrami operators."
+    ]
+  },
+  "dependencies_and_relations": {
+    "prerequisite_patterns": [],
+    "related_patterns": [
+      "P-02_AFFINE_TRANSFORMATION_COMPOSITION",
+      "P-REFLECT-XA"
+    ],
+    "core_capabilities": [
+      "src/core/reflection.ts:reflectPoint",
+      "src/core/reflection.ts:reflectPolygon",
+      "src/core/reflection.ts:computeReflectionMatrix",
+      "src/core/reflection.ts:getReflectionTransform",
+      "src/core/reflection.ts:applyAffineTransform",
+      "src/verifier/independentVerifier.ts:verifyIsometry",
+      "src/verifier/independentVerifier.ts:verifyAxisImmobility",
+      "src/verifier/independentVerifier.ts:verifyAreaInvariants",
+      "src/verifier/independentVerifier.ts:auditFoldStep"
+    ],
+    "linked_experiments": [
+      "EXPERIMENTS/ORIGAMI-REFERENCE/SEQ-001-REPORT.md",
+      "EXPERIMENTS/ORIGAMI-REFERENCE/NC-001-NEGATIVE-CONTROL.md",
+      "EXPERIMENTS/ORIGAMI-REFERENCE/SEQ-002-REPORT.md",
+      "EXPERIMENTS/GATE-1.2-CLOSURE-REPORT.md"
+    ]
+  },
+  "maintenance": {
+    "author": "PCRS Theory & Verification Lab",
+    "revision_history": [
+      {
+        "version": "1.0.0",
+        "date": "2026-10-25",
+        "author": "PCRS Architecture Core",
+        "note": "Canonical initial release of P-01 Planar Line Reflection passport under Package 13B."
+      }
+    ],
+    "deprecation_links": []
+  }
+}

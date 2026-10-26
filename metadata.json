@@ -1,0 +1,6 @@
+{
+  "name": "PCRS Theory Lab — Paper Construction Reasoning Stand",
+  "description": "Теоретическая и экспериментальная основа PCRS (Paper Construction Reasoning Stand). Формализация геометрии складывания бумаги, контракты вычислительного ядра, независимая верификация и воспроизводимые эксперименты.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

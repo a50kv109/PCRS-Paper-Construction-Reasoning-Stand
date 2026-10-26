@@ -1,0 +1,606 @@
+Я вижу, куда продвинулся PCRS. Google AI Studio собрал теоретические документы, добавил принципы проверки, связал три проекта-донора и сформировал экспериментальный план. Но теперь нам важно не просто продолжать генерировать документацию, а передать в лабораторию недостающие математические знания из наших предыдущих исследований и поставить следующие задачи в правильном порядке.
+
+Я подготовлю это в двух частях:
+
+* Инсайды для PCRS — подробные объяснения математических идей, которые Google AI Studio не мог знать из наших прежних бесед.
+
+* Рабочий промпт — конкретное задание для текущего проекта Google AI Studio, чтобы он включил эти идеи в исследовательскую базу, проверил противоречия и подготовил Gate 1 без преждевременной реализации.
+
+Сначала важная оговорка: отчёт Google AI Studio — это свидетельство того, что модель заявляет о проделанной работе. Мы пока не проверили непосредственно изменённые файлы, программный код и тестовые результаты в этой среде. Поэтому я буду различать математические выводы, результаты, заявленные Gemini, и то, что ещё предстоит проверить.
+
+### Часть I. Математические инсайды, которые нужно передать в PCRS
+
+### Инсайт 1. Отражение в плоскости — это модель проекции плоского сгиба, а не полная модель физического движения
+
+В PCRS уже рассматривается отражение многоугольника относительно линии сгиба. Это полезная математическая операция, но необходимо точно определить, что она моделирует.
+
+Пусть линия сгиба задана точкой и единичным вектором направления . Тогда матрица отражения относительно этой линии:
+
+R=2uu^\\mathsf T-I.
+
+Для произвольной точки отражённая точка равна
+
+p'=a+R(p-a).
+
+Из этого следуют проверяемые свойства:
+
+R^\\mathsf TR=I,\\qquad R^2=I,\\qquad \\det R=-1.
+
+То есть отражение сохраняет евклидовы расстояния, при повторном применении возвращает исходную точку и меняет ориентацию.
+
+Но есть принципиальное различие.
+
+* В 2D-модели плоского сгиба отражение позволяет вычислить проекцию перемещённой грани и проверить её перекрытие с другими гранями.
+
+* В физическом сгибании грань вращается вокруг линии сгиба в трёхмерном пространстве. Для моделирования самого движения нужна 3D-кинематика.
+
+* После плоского складывания совпадение двумерных проекций ещё не говорит, какая грань находится сверху, а какая снизу.
+
+Поэтому отражение — хороший первый вычислительный примитив, но не универсальный алгоритм складывания.
+
+Задание для PCRS: в спецификации `FoldOperation` явно определить, описывает ли операция плоское отражение для вычисления проекции или физическое вращение грани. Не смешивать эти две семантики.
+
+### Инсайт 2. Композиция сгибов — это отдельный объект математической проверки
+
+Если выполнить несколько преобразований подряд, результирующее преобразование определяется композицией:
+
+T=R_nR_{n-1}\\cdots R_1.
+
+Порядок множителей важен: в общем случае преобразования не коммутируют.
+
+Например, две различные линии отражения в плоскости дают композицию двух отражений, которая является поворотом вокруг точки пересечения этих линий. Если линии параллельны, композиция является переносом.
+
+Это позволяет строить тесты последовательности операций, не полагаясь на графическую визуализацию.
+
+Однако нужно различать три утверждения:
+
+* Каждая операция по отдельности корректна.
+
+* Композиция корректно вычислена.
+
+* Композиция соответствует допустимой физической последовательности сгибаний бумаги.
+
+Первые два утверждения можно проверить матричными вычислениями. Третье требует дополнительных ограничений на геометрию листа, шарниры, контакт граней и допустимость движения.
+
+Особенно важно не требовать от каждой последовательности. Возврат к исходному состоянию — это условие конкретного эксперимента, а не универсальное свойство сгибания.
+
+Задание для PCRS: создать минимальный эксперимент с двумя отражениями, проверить композицию аналитически, а затем специально изменить порядок операций и проверить, меняется ли результат.
+
+### Инсайт 3. Теоремы Кавасаки и Маэкавы — это локальные ограничения, а не универсальные доказательства складываемости
+
+Для плоского складывания в вершине складочной схемы существуют классические необходимые условия.
+
+Теорема Кавасаки
+
+Для невырожденной складочной вершины с углами между последовательными лучами условие плоской складываемости имеет вид
+
+\\sum_{i=1}^{n}\\alpha_{2i-1}
+=
+\\sum_{i=1}^{n}\\alpha_{2i}
+=180^\\circ.
+
+Теорема Маэкавы
+
+Для обычной внутренней вершины плоско складываемой складочной схемы разность числа горных и долинных складок удовлетворяет условию
+
+|M-V|=2.
+
+Здесь и — числа горных и долинных складок, сходящихся в рассматриваемой вершине.
+
+Эти условия применимы при определённых предположениях о локальной складочной схеме. Они не означают, что любая конструкция, удовлетворяющая обоим условиям во всех вершинах, обязательно имеет допустимую глобальную последовательность складывания.
+
+В частности, нужно различать:
+
+* локальную геометрическую допустимость вершины;
+
+* совместимость горных и долинных складок;
+
+* глобальную плоскую складываемость;
+
+* достижимость конфигурации непрерывным движением;
+
+* отсутствие столкновений и непротиворечивый порядок слоёв.
+
+Задание для PCRS: сначала добавить эти теоремы в исследовательский каталог и разработать отдельные тесты для локальных вершин. Не объявлять их частью ядра до определения поддерживаемого класса складочных схем.
+
+### Инсайт 4. Цепные комплексы проверяют структуру, но не всю геометрию
+
+Представим лист как ориентированный клеточный комплекс:
+
+C_2\\xrightarrow{\\partial_2}C_1
+\\xrightarrow{\\partial_1}C_0.
+
+Здесь — пространство граней, — рёбер, — вершин, а — граничные операторы.
+
+Фундаментальное тождество:
+
+\\partial_1\\partial_2=0.
+
+Оно означает, что граница границы любой двумерной ячейки равна нулю. В матричной форме это:
+
+B_1B_2=0,
+
+где — матрица инцидентности «вершины–рёбра», а — матрица инцидентности «рёбра–грани».
+
+Для PCRS это даёт тест на согласованность комбинаторного представления. Например, если неверно задана ориентация ребра в границе грани, произведение матриц может перестать быть нулевым.
+
+Но обратное неверно: выполнение само по себе не доказывает, что координаты вершин заданы правильно, многоугольники не пересекаются неправильно или лист можно физически сложить.
+
+Поэтому результат должен называться, например, `TOPOLOGICAL_CHAIN_CONSISTENCY`, а не общим `FOLD_VERIFIED`.
+
+Задание для PCRS: сделать небольшой матричный эталон, вручную проверить , затем испортить один знак в матрице и убедиться, что независимая проверка обнаруживает нарушение.
+
+### Инсайт 5. Теория Ходжа должна решать конкретную задачу, а не служить декоративным слоем
+
+В дискретной теории Ходжа рассматриваются цепные и коцепные пространства, операторы границы и сопряжённые им операторы.
+
+Для коцепей оператор переводит -коцепи в -коцепи. При заданном скалярном произведении можно определить сопряжённый оператор .
+
+Лапласиан на -коцепях имеет вид
+
+\\Delta_k
+=
+d_{k-1}\\delta_k
++
+\\delta_{k+1}d_k.
+
+Чтобы построить его матрично, необходимо определить базисы, матрицы инцидентности и метрики или матрицы масс. Без этих определений запись формулы ещё не является работающим алгоритмом.
+
+Для PCRS возможные исследовательские направления:
+
+* анализ циклов и связности складочной сети;
+
+* исследование дискретных полей, определённых на рёбрах или гранях;
+
+* поиск несогласованностей в системе ограничений;
+
+* выделение топологических характеристик, которые обычные локальные тесты не обнаруживают.
+
+Но пока это кандидаты на исследование, а не доказанная функциональность Hodge Core. Лапласиан не должен автоматически объявляться алгоритмом проверки физической складываемости.
+
+Задание для PCRS: потребовать от каждого предлагаемого оператора описание входных данных, вычисляемого результата, проверяемой гипотезы и контрпримера, который показал бы ограниченность метода.
+
+### Инсайт 6. Граф порядка слоёв требует аккуратной модели
+
+Если после складывания две грани перекрываются, система может задавать отношение «грань A выше грани B». В простейшем случае такие отношения формируют ориентированный граф.
+
+Если граф содержит цикл строгого порядка,
+
+A\\succ B,\\quad B\\succ C,\\quad C\\succ A,
+
+то эти требования несовместимы: строгий порядок не может одновременно удовлетворять всем трём условиям.
+
+Но здесь есть тонкость: отношения перекрытия могут зависеть от конкретной области листа. Две грани могут перекрываться в одном месте и не перекрываться в другом. Поэтому глобальный граф «одна вершина — одна грань» может оказаться слишком грубой моделью.
+
+Задание для PCRS: до реализации `LayerStackingDAG` определить, что является узлом графа, как задаётся локальная область перекрытия и когда цикл действительно означает противоречие.
+
+### Инсайт 7. Воспроизводимость требует больше, чем хеш состояния
+
+В одном из проектов-доноров использовалась детерминированная сигнатура геометрического состояния на основе FNV-1a. Это полезный инженерный приём, но не доказательство идентичности двух геометрических конфигураций.
+
+Нужно различать:
+
+* канонизацию данных;
+
+* нормализацию чисел с плавающей точкой;
+
+* вычисление хеша;
+
+* независимое сравнение геометрических свойств.
+
+FNV-1a допускает коллизии и не является криптографическим хешем. Если сначала округлять координаты, разные состояния могут стать одинаковыми в представлении. Если привязывать координаты к сетке, результат может измениться относительно исходной геометрии.
+
+Поэтому для PCRS разумно хранить отдельно:
+
+* исходные входные данные;
+
+* последовательность операций `Trace`;
+
+* каноническое представление состояния;
+
+* диагностические инварианты;
+
+* контрольную подпись для быстрого сравнения.
+
+Задание для PCRS: не считать совпадение хешей геометрическим доказательством. Проверить политику допусков и канонизации на специально подобранных почти совпадающих и вырожденных конфигурациях.
+
+### Инсайт 8. Источник математической идеи — это не свидетельство её применимости
+
+Старый фёдоровский чат упомянул работу на Zenodo `10.5281/zenodo.20142167`, посвящённую временной непрерывности и рекурсивной динамике. Пока у нас есть только пересказ её содержания, а не проверенный анализ полного текста.
+
+Из этого материала можно поставить исследовательский вопрос: можно ли использовать идеи представления последовательностей состояний, динамических переходов или воспроизводимых временных рядов при анализе истории сгибаний?
+
+Но перенос формул допустим лишь после проверки:
+
+* точных определений в исходной работе;
+
+* предположений, при которых выведены формулы;
+
+* того, какие объекты PCRS им соответствуют;
+
+* того, что именно можно проверить на конкретном эксперименте.
+
+До такого сопоставления эту работу нужно обозначать как `POTENTIAL_METHOD_SOURCE`, а не как математическую основу PCRS.
+
+### Часть II. Промпт для Google AI Studio
+
+Теперь нужно передать эти инсайты в лабораторию не как отдельную лекцию, а как конкретное исследовательское задание. Я предлагаю назвать его Gate 0.2 — Mathematical Integration & Gate 1 Specification.
+
+Его цель — интегрировать математические идеи в существующую документацию, провести аудит спорных решений и подготовить план первого ядра. Само ядро пока не реализовывать.
+
+# PCRS THEORY LAB — GATE 0.2
+# MATHEMATICAL INTEGRATION & GATE 1 SPECIFICATION
+
+## 0. Context transfer: this information is new to this session
+
+You are working on PCRS — Paper Construction Reasoning Stand.
+
+The existing project contains theory documents, experiment specifications, architecture notes, reuse candidates from three donor repositories, and a proposed Hodge Core research direction.
+
+The current Gate 0 report states ACCEPTED WITH GAPS. The eight checks in PCRS-CORE-EXP-001 have been analytically specified, but the report explicitly states that their implementation has not yet been executed in the PCRS runtime.
+
+Do not confuse an analytical specification with an executed test.
+
+The following mathematical insights come from a separate research conversation concerning Fedorov-related mathematics, symmetry, geometry, and a proposed Hodge Core. They have not necessarily been incorporated into the current repository. Treat them as new research input, not as established PCRS decisions.
+
+Your task is to audit the existing repository and integrate only the parts that are mathematically justified and relevant.
+
+Do not assume that you know the prior conversations beyond the context explicitly provided here.
+
+---
+
+## 1. Methodological principles
+
+Preserve these three PCRS principles:
+
+1. Construction is not proof.
+2. A result is not reproducibility.
+3. Start with a minimal experiment.
+
+Use the following system boundary:
+
+AGENT PROPOSES
+→ GEOMETRY KERNEL COMPUTES
+→ INDEPENDENT VERIFIER CHECKS
+→ EXPERIMENT REFINES THE MODEL.
+
+Keep these artifacts separate:
+
+- Canonical State.
+- FoldOperation.
+- Operation Trace.
+- Verification Claim.
+- Evidence.
+- VerificationReport.
+- Experiment Record.
+
+A model-generated claim is not independent evidence. A hash is not a geometric proof. A passing local test is not proof of global physical foldability.
+
+Preserve the epistemic statuses already established in the repository. Do not mark an item EXPERIMENT_VERIFIED unless the corresponding test was actually executed and the output was recorded.
+
+## 2. Insight A: distinguish planar reflection from physical folding
+
+For a line defined by a point a and unit direction vector u, define the planar reflection:
+
+R = 2uuᵀ − I
+
+and
+
+p' = a + R(p − a).
+
+Derive and document these properties:
+
+- RᵀR = I.
+- R² = I.
+- det(R) = −1.
+- Points on the reflection axis remain fixed.
+- Euclidean distances are preserved.
+- Polygon area is preserved in absolute value.
+
+Explain the semantics precisely.
+
+A planar reflection can represent the projected footprint of a face after an idealized flat fold. It does not, by itself, model the complete three-dimensional motion of a sheet, layer order, collision-free motion, or physical thickness.
+
+Distinguish:
+
+A. A planar reflection used to calculate overlap after an idealized flat fold.
+
+B. A three-dimensional rigid rotation about a crease.
+
+C. A complete physical folding trajectory.
+
+Do not silently use one model as a substitute for another.
+
+Audit the existing definitions of FoldOperation and the EXP-001 and PCRS-CORE-EXP-001 specifications. If their semantics are ambiguous, document the ambiguity and propose a correction. Do not modify the executable kernel at this stage.
+
+## 3. Insight B: composition and closure of transformations
+
+For a sequence of planar transformations, define
+
+T = Rₙ Rₙ₋₁ ... R₂ R₁.
+
+Specify the convention for multiplication and the order of application.
+
+Design an analytical example involving two reflections:
+
+- Use two intersecting reflection axes.
+- Derive the resulting transformation.
+- Verify the result using explicit coordinates or matrices.
+- Repeat with the order of the reflections reversed.
+- Explain whether the result changes.
+
+Also describe the case of parallel reflection axes.
+
+Distinguish three verification claims:
+
+1. Each individual transformation is valid.
+2. The computed composition is correct.
+3. The composition is admissible as a physical folding sequence.
+
+Do not assume that every folding sequence must return to its initial state. Test T = I only when closure is explicitly required by the experiment.
+
+Propose a new experiment specification only if the existing experiment package does not already cover these properties.
+
+Suggested identifier: PCRS-CORE-EXP-002.
+
+## 4. Insight C: local flat-foldability conditions
+
+Research the mathematical scope of Kawasaki's and Maekawa's theorems.
+
+For an appropriate nondegenerate single vertex with sector angles α₁,...,α₂ₙ, document Kawasaki's condition:
+
+Σ α₂ᵢ₋₁ = Σ α₂ᵢ = 180°.
+
+For a conventional flat-foldable interior vertex, document Maekawa's condition:
+
+|M − V| = 2,
+
+where M and V are the numbers of mountain and valley creases at that vertex.
+
+For each theorem:
+
+- State the assumptions.
+- Identify the class of configurations to which it applies.
+- Explain whether the condition is necessary, sufficient, or both within that class.
+- Provide at least one minimal numerical example.
+- Specify an invalid example that should fail the corresponding test.
+- State what the theorem does not establish.
+
+Do not claim that satisfying local vertex conditions proves global foldability, continuous reachability, absence of collisions, or consistent layer ordering.
+
+Create a research document or a clearly separated section in an existing theory document. Suggested path:
+
+THEORY/FLAT_FOLDABILITY_CONDITIONS.md
+
+Classify the work as research or validation support, not as an implemented kernel feature.
+
+## 5. Insight D: chain complexes and structural consistency
+
+Formalize a finite oriented cell complex:
+
+C₂ --∂₂--> C₁ --∂₁--> C₀.
+
+Define:
+
+- C₂: faces.
+- C₁: edges.
+- C₀: vertices.
+- B₂: the matrix representing ∂₂.
+- B₁: the matrix representing ∂₁.
+
+Verify the boundary-of-boundary identity:
+
+B₁B₂ = 0.
+
+Provide a fully worked example with explicit matrices and direct multiplication.
+
+Then introduce a negative test in which an incidence sign or boundary entry is deliberately corrupted. Explain whether and why the identity fails.
+
+Document the scope boundary:
+
+This identity can detect certain malformed combinatorial representations. It does not prove geometric validity, flat-foldability, physical realizability, or correctness of the layer order.
+
+Use a precise result name such as TOPOLOGICAL_CHAIN_CONSISTENCY. Do not use a generic status such as FOLD_VERIFIED for this result.
+
+Integrate the example into the Hodge Core research document or a dedicated reproducible experiment, without duplicating equivalent material unnecessarily.
+
+## 6. Insight E: discrete Hodge theory
+
+Distinguish three things:
+
+1. Classical Hodge theory.
+2. Discrete Hodge theory on finite complexes.
+3. The proposed PCRS architectural concept called Hodge Core.
+
+For cochains, define the coboundary operators dₖ and explain their relationship to boundary operators.
+
+Given a specified inner product, define the adjoint operator δ. State the conventions used for indices.
+
+For k-cochains, document the Laplacian:
+
+Δₖ = dₖ₋₁ δₖ + δₖ₊₁ dₖ.
+
+If a matrix representation is proposed, specify:
+
+- The basis of every space.
+- The incidence or coboundary matrices.
+- The inner-product or mass matrices.
+- The resulting adjoint matrices.
+- The boundary conditions and assumptions.
+- The dimensions and meaning of the output.
+
+Work through one small finite example with explicit matrices. Do not present the symbolic formula alone as an implemented algorithm.
+
+Evaluate possible PCRS applications, such as cycle analysis, discrete fields, or diagnostics for constraint consistency.
+
+For each proposed application, identify a concrete input, a computable output, and a falsifiable prediction.
+
+If no demonstrated use case justifies the operator, classify it as RESEARCH_MODULE or NOT_YET_JUSTIFIED. Do not put it into the production kernel merely because it is mathematically sophisticated.
+
+## 7. Insight F: layer-order graph
+
+The current project identifies layer ordering as an unresolved Gate 1 problem.
+
+Investigate a graph whose directed relations represent one face lying above another in a specified overlap region.
+
+For strict ordering, a cycle such as
+
+A > B, B > C, C > A
+
+is contradictory.
+
+However, explain why a global graph with one node per face may be insufficient if two faces overlap only in part of their domains or their relative order is region-dependent.
+
+Before proposing an implementation, specify:
+
+- What constitutes a node.
+- What constitutes an ordering relation.
+- Whether the relation is local to an overlap region.
+- Which assumptions make a directed cycle contradictory.
+- How the model represents contacts, non-overlapping regions, and uncertain ordering.
+- What a negative test would look like.
+
+Do not implement LayerStackingDAG yet. Produce a mathematical contract and identify the smallest experiment needed.
+
+## 8. Insight G: canonical state, tolerance, and hashing
+
+The donor projects contain deterministic state signatures, including an FNV-1a-based approach.
+
+Audit how this idea is currently represented in PCRS.
+
+Explicitly distinguish:
+
+- Canonicalization.
+- Numeric normalization.
+- Tolerance-based geometric comparison.
+- Hash computation.
+- Independent geometric verification.
+
+FNV-1a is not a cryptographic proof of identity and can produce collisions. Equality of hashes does not prove equality of geometry.
+
+Rounding or snapping coordinates can merge distinct configurations or change geometric results. Do not introduce unconditional snapping or arbitrary quantization.
+
+Propose tests involving:
+
+- Identical canonical states.
+- Different states with close coordinates.
+- Degenerate geometry.
+- Different vertex orderings representing the same polygon.
+- Changes that affect topology or contact classification.
+
+Document the numerical policy as a separate engineering decision. Do not invent a universal epsilon without specifying units, coordinate scale, operation type, and error budget.
+
+## 9. Insight H: prior research on temporal continuity
+
+A separate conversation mentioned a Zenodo work with DOI:
+
+10.5281/zenodo.20142167
+
+It was described as concerning temporal continuity, recursive dynamics, and time-series analysis.
+
+This is an unverified description supplied as research context. Do not claim to have read the full paper unless you actually retrieved and examined it.
+
+Record it as a potential methodological source for representing sequences of states, transitions, or reproducible histories.
+
+Do not import its formulas into PCRS until their original definitions, assumptions, and relevance have been checked.
+
+If the source is unavailable, record the missing evidence and the exact research questions that would need to be resolved.
+
+## 10. Mathematical status and traceability
+
+For every mathematical claim added or modified, record:
+
+- Claim identifier.
+- Exact statement.
+- Assumptions.
+- Source or derivation.
+- Intended PCRS responsibility.
+- Independent verification criterion.
+- Experiment identifier, if applicable.
+- Actual execution status.
+- Known limitations.
+
+Use the repository's established status vocabulary where possible. Distinguish established mathematics, proposed applications, hypotheses, analytical expectations, and executed experimental results.
+
+Do not invent source references, test outputs, commit identifiers, or validation evidence.
+
+## 11. Required repository audit
+
+Before editing:
+
+1. Inspect the actual current files.
+2. Identify English and localized document paths.
+3. Detect duplicate or conflicting documents created by mixed-language path conventions.
+4. Check whether the EXP-001 A/B split is consistently reflected in the charter, theory, experiment specifications, traceability matrix, and UI document registry.
+5. Verify that the corrected EXP-002 Case 2.2 expected area is 0.125.
+6. Check whether the eight checks in PCRS-CORE-EXP-001 are only specified or have actually been executed.
+7. Identify all contradictions between the previous Gate 0 report and current repository contents.
+
+Do not trust the earlier generated summary without checking the source files.
+
+The donor-repository test results reported in the previous summary are claims from that report. Do not treat them as independently verified unless the actual execution evidence is available.
+
+## 12. Deliverables
+
+Create or update the minimum necessary documents:
+
+- THEORY/HODGE_CORE_RESEARCH.md
+- THEORY/VERIFICATION_PRINCIPLES.md
+- THEORY/FLAT_FOLDABILITY_CONDITIONS.md
+- ARCHITECTURE/TRACEABILITY.md
+- EXPERIMENTS/EXPERIMENT_GAPS.md
+
+Use the existing repository's actual path and language conventions. If an equivalent document already exists under another path, update it instead of creating an unnecessary duplicate.
+
+If a new composition experiment is justified, create:
+
+EXPERIMENTS/PCRS-CORE-EXP-002/SPECIFICATION.md
+
+The experiment must include analytical expectations, explicit inputs, a negative test, deterministic acceptance criteria, and a separate field for actual execution evidence.
+
+Do not modify the geometry kernel, UI behavior, or implement the Hodge Core or layer-order algorithm at this stage.
+
+Do not publish, commit, or synchronize changes externally without explicit authorization.
+
+## 13. Final report
+
+Return a concise but technically detailed report containing:
+
+1. Files inspected and changed.
+2. Mathematical claims added or corrected.
+3. Contradictions discovered and their resolution.
+4. Experiments specified versus actually executed.
+5. Current risks and unsupported claims.
+6. Recommended minimal experiment for Gate 1.
+7. Decisions requiring explicit approval.
+8. Conditions that must be satisfied before implementation of the first kernel and independent verifier.
+
+The target is not maximum documentation volume. The target is a traceable, reproducible, mathematically defensible foundation for PCRS.
+
+### Часть III. Какие задания должны идти после этого
+
+Я бы не разрешал Google AI Studio самостоятельно переходить к масштабной реализации сразу после выполнения промпта. Следующие шаги должны быть последовательными.
+
+* Математический аудит Gate 0.2. Проверить документы, формулы, обозначения, ссылки и согласованность статусов. Исправить только обоснованные противоречия.
+
+* EXP-001-A/B и CORE-EXP-001. Разделить тесты перекрытия и проверки преобразований. Аналитические ожидания оставить независимыми от реализации, а результаты запуска записывать отдельно.
+
+* CORE-EXP-002: композиция отражений. Проверить два отражения, изменение порядка, сохранение расстояний и возврат к исходной конфигурации в специально заданном замкнутом примере.
+
+* Локальные условия плоского складывания. Спроектировать независимые тесты для Кавасаки и Маэкавы, не превращая их в универсальный тест физической складываемости.
+
+* Контракты первого ядра. Только после этого окончательно определить `PaperState`, `FoldOperation`, `Trace`, `VerificationReport` и поведение при неподдерживаемых входных данных.
+
+### Что я пока не рекомендую
+
+* Не включать дискретный лапласиан Ходжа в обязательный вычислительный путь до появления конкретной проверяемой задачи.
+
+* Не считать хеш состояния доказательством геометрического равенства.
+
+* Не вводить автоматическое округление или привязку к сетке без отдельного эксперимента.
+
+* Не считать ацикличность глобального графа граней доказательством физической складываемости.
+
+* Не переходить к модели толщины, непрерывной физической динамике или сложному многослойному столкновению, пока базовые двумерные операции не прошли воспроизводимые тесты.
+
+Мой главный приоритет для PCRS сейчас: сделать небольшой набор преобразований и независимых проверок, в котором для каждого результата есть математическое обоснование, отрицательный тест и ясные границы применимости. После этого будет намного легче понять, какие более сложные методы действительно необходимы.

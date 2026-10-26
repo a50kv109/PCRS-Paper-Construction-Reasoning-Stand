@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PCRSPatternPassport",
+  "type": "object",
+  "required": [
+    "identity",
+    "definition",
+    "applicability",
+    "inputs_and_outputs",
+    "execution_semantics",
+    "verification_contract",
+    "evidence_and_provenance",
+    "limitations",
+    "dependencies_and_relations",
+    "maintenance"
+  ],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "required": ["pattern_id", "name", "description", "schema_version", "pattern_version", "lifecycle_status"],
+      "properties": {
+        "pattern_id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "schema_version": { "type": "string" },
+        "pattern_version": { "type": "string" },
+        "lifecycle_status": {
+          "type": "string",
+          "enum": ["PROPOSED", "SPECIFIED", "DERIVED", "EXPERIMENT_VERIFIED", "FAILED", "UNSUPPORTED_INPUT", "UNVERIFIED"]
+        }
+      }
+    },
+    "definition": {
+      "type": "object",
+      "required": ["rule", "purpose", "category", "domain", "scope"],
+      "properties": {
+        "rule": { "type": "string" },
+        "purpose": { "type": "string" },
+        "category": { "type": "string" },
+        "domain": { "type": "string" },
+        "scope": { "type": "string" }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "required": ["preconditions", "required_properties", "supported_inputs", "unsupported_inputs", "degeneracies"],
+      "properties": {
+        "preconditions": { "type": "array", "items": { "type": "string" } },
+        "required_properties": { "type": "array", "items": { "type": "string" } },
+        "supported_inputs": { "type": "array", "items": { "type": "string" } },
+        "unsupported_inputs": { "type": "array", "items": { "type": "string" } },
+        "degeneracies": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "inputs_and_outputs": {
+      "type": "object",
+      "required": ["inputs", "coordinate_system", "output_descriptor", "error_conditions"],
+      "properties": {
+        "inputs": { "type": "array", "items": { "type": "object" } },
+        "coordinate_system": { "type": "string" },
+        "output_descriptor": { "type": "object" },
+        "error_conditions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "execution_semantics": {
+      "type": "object",
+      "required": ["operation_description", "state_transition_semantics"],
+      "properties": {
+        "operation_description": { "type": "string" },
+        "dependency_references": { "type": "array", "items": { "type": "string" } },
+        "state_transition_semantics": { "type": "string" },
+        "proposal_vs_execution": { "type": "string" }
+      }
+    },
+    "verification_contract": {
+      "type": "object",
+      "required": ["postconditions", "analytic_oracle", "tolerance_policy"],
+      "properties": {
+        "postconditions": { "type": "array", "items": { "type": "string" } },
+        "analytic_oracle": { "type": "string" },
+        "tolerance_policy": { "type": "object" },
+        "positive_tests": { "type": "array", "items": { "type": "string" } },
+        "negative_controls": { "type": "array", "items": { "type": "string" } },
+        "invariant_checks": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "evidence_and_provenance": {
+      "type": "object",
+      "required": ["evidence_status", "reproduction_commands"],
+      "properties": {
+        "evidence_identifiers": { "type": "array", "items": { "type": "string" } },
+        "reproduction_commands": { "type": "array", "items": { "type": "string" } },
+        "evidence_status": {
+          "type": "string",
+          "enum": ["CONFIRMED_BY_TEST", "CONFIRMED_BY_ANALYTIC_CHECK", "IMPLEMENTED_NOT_FULLY_VERIFIED", "UNRESOLVED", "OUT_OF_SCOPE", "UNVERIFIED"]
+        },
+        "known_gaps": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "limitations": {
+      "type": "object",
+      "required": ["scope_boundaries", "unsupported_claims"],
+      "properties": {
+        "scope_boundaries": { "type": "array", "items": { "type": "string" } },
+        "unresolved_assumptions": { "type": "array", "items": { "type": "string" } },
+        "unsupported_claims": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "dependencies_and_relations": {
+      "type": "object",
+      "required": ["prerequisite_patterns", "core_capabilities"],
+      "properties": {
+        "prerequisite_patterns": { "type": "array", "items": { "type": "string" } },
+        "related_patterns": { "type": "array", "items": { "type": "string" } },
+        "core_capabilities": { "type": "array", "items": { "type": "string" } },
+        "linked_experiments": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "maintenance": {
+      "type": "object",
+      "required": ["author", "revision_history"],
+      "properties": {
+        "author": { "type": "string" },
+        "revision_history": { "type": "array", "items": { "type": "object" } },
+        "deprecation_links": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
