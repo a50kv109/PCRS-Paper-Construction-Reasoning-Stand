@@ -183,8 +183,8 @@
   "dependencies_and_relations": {
     "prerequisite_patterns": [],
     "related_patterns": [
-      "P-02_AFFINE_TRANSFORMATION_COMPOSITION",
-      "P-REFLECT-XA"
+      "P-02 (PROPOSED / NOT_IMPLEMENTED)",
+      "P-REFLECT-XA (EXAMPLE_ONLY)"
     ],
     "core_capabilities": [
       "src/core/reflection.ts:reflectPoint",
