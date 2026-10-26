@@ -21,7 +21,7 @@
       "Line anchor point a must have finite coordinates [ax, ay].",
       "Target point p must have finite coordinates [px, py].",
       "Target polygon vertices must form a non-empty array of valid finite 2D points with length >= 3.",
-      "All input coordinates must lie within the calibrated domain bound L = max(|x|, |y|) in [0, 2] (all vertices must be contained within a 4x4 square centered at the origin) to guarantee numerical discrepancy eps_coord <= 1.0e-7."
+      "Caller-side Precondition: All input coordinates should ideally lie within the calibrated domain bound L = max(|x|, |y|) <= 2 (contained within 4x4 square centered at the origin) to guarantee coordinate discrepancy eps_coord <= 1.0e-7. Out-of-domain inputs are not explicitly rejected at runtime but are not guaranteed to satisfy stated tolerance limits."
     ],
     "required_properties": [
       "2D Cartesian coordinate representation using IEEE 754 Float64.",
