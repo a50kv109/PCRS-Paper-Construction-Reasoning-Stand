@@ -56,6 +56,10 @@
 | `/docs/architecture/PCRS_RELEASE_GATE_CHECKLIST.md` | Чек-лист выпуска и верификации релизных ворот | RELEASE_PROCESS | `REFERENCE` |
 | `/EXPERIMENTS/ORIGAMI-REFERENCE/EXPERIMENT_INDEX.md` | Каталог и индекс подтвержденных экспериментов | EXPERIMENT_EVIDENCE | `CANONICAL` |
 | `/EXPERIMENTS/ORIGAMI-REFERENCE/SEQ-001-REPORT.md` | Отчет об исполнении эксперимента двух зависимых отражений | EXPERIMENT_EVIDENCE | `REFERENCE` |
+| `/docs/architecture/PCRS_INSIGHT_REGISTER.md` | Реестр архитектурных инсайтов и уроков эволюции системы | ARCHITECTURE | `CANONICAL` |
+| `/docs/research/PCRS_AI_GEOMETRY_SKILL_LESSONS.md` | Анализ уроков внешней базы знаний AI Geometry Skill | KNOWLEDGE_REUSE | `REFERENCE` |
+| `/docs/research/PCRS_CONSTRUCTION_PRIMITIVES_SPEC.md` | Спецификация конструктивных геометрических примитивов | CONTRACT | `CANONICAL` |
+| `/docs/research/PCRS_EXPERIMENT_EVIDENCE_CONTRACT.md` | Регламент отчёта об эксперименте и прослеживаемого рассуждения | CONTRACT | `CANONICAL` |
 | `/docs/knowledge-reuse/PCRS_KNOWLEDGE_REUSE_MATRIX.md` | Матрица адаптации внешних концепций (Пакет 3) | KNOWLEDGE_REUSE | `REFERENCE` |
 
 ---
