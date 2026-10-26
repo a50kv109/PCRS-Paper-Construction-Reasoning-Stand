@@ -21,7 +21,7 @@
       "Line anchor point a must have finite coordinates [ax, ay].",
       "Target point p must have finite coordinates [px, py].",
       "Target polygon vertices must form a non-empty array of valid finite 2D points with length >= 3.",
-      "All input coordinates must lie within the calibrated domain bound L in [0, 2] to guarantee numerical discrepancy eps_coord <= 1.0e-7."
+      "All input coordinates must lie within the calibrated domain bound L = max(|x|, |y|) in [0, 2] (all vertices must be contained within a 4x4 square centered at the origin) to guarantee numerical discrepancy eps_coord <= 1.0e-7."
     ],
     "required_properties": [
       "2D Cartesian coordinate representation using IEEE 754 Float64.",
@@ -165,7 +165,7 @@
     "scope_boundaries": [
       "Purely 2D planar Euclidean space (x, y in R^2); no elevation or z-coordinate.",
       "Rigid kinematics only; zero-thickness idealization (t = 0).",
-      "Calibrated for coordinate domain L in [0, 2]; numerical tolerances do not automatically scale to arbitrarily large domains."
+      "Calibrated for coordinate domain L = max(|x|, |y|) in [0, 2] (vertices contained within 4x4 square centered at origin); numerical tolerances do not automatically scale to arbitrarily large domains."
     ],
     "unresolved_assumptions": [
       "Zero paper thickness: layers occupy identical geometric plane during overlap without physical volume exclusion.",
